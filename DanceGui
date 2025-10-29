@@ -1,0 +1,827 @@
+--[[
+    ============================================================
+    MODERN MINIMALIST DANCE & EMOTE GUI - CLEAN VERSION
+    ============================================================
+    Author: ItoRenz
+    Description: Clean GUI untuk dance dan emote di Roblox
+    Platform: Mobile & PC Support
+    Version: 2.0 - Instant Response, No Delay
+    
+    Installation:
+    1. Buat ScreenGui di StarterGui
+    2. Buat LocalScript di dalam ScreenGui
+    3. Paste script ini ke LocalScript
+    ============================================================
+--]]
+
+-- ============================================================
+-- SERVICES & VARIABLES
+-- ============================================================
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local animator = humanoid:WaitForChild("Animator")
+
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+-- ============================================================
+-- PLATFORM DETECTION
+-- ============================================================
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
+-- ============================================================
+-- UI CONFIGURATION
+-- ============================================================
+local UI_CONFIG = {
+    toggleSize = isMobile and UDim2.new(0, 30, 0, 30) or UDim2.new(0, 35, 0, 35),
+    togglePositionClosed = isMobile and UDim2.new(0, 8, 0.5, -15) or UDim2.new(0, 10, 0.5, -17.5),
+    togglePositionOpen = isMobile and UDim2.new(0, 195, 0.5, -15) or UDim2.new(0, 220, 0.5, -17.5),
+    toggleTextSize = isMobile and 14 or 16,
+    
+    panelSize = isMobile and UDim2.new(0, 180, 0, 320) or UDim2.new(0, 200, 0, 420),
+    panelPositionClosed = isMobile and UDim2.new(0, -180, 0.5, -160) or UDim2.new(0, -200, 0.5, -210),
+    panelPositionOpen = isMobile and UDim2.new(0, 8, 0.5, -160) or UDim2.new(0, 10, 0.5, -210),
+    
+    titleHeight = isMobile and 20 or 22,
+    tabHeight = isMobile and 26 or 28,
+    searchHeight = isMobile and 26 or 28,
+    
+    buttonHeight = isMobile and 36 or 42,
+    titleTextSize = isMobile and 10 or 11,
+    tabTextSize = isMobile and 9 or 10,
+    searchTextSize = isMobile and 9 or 10,
+    buttonTextSize = isMobile and 11 or 13,
+}
+
+-- ============================================================
+-- COLOR PALETTE
+-- ============================================================
+local COLORS = {
+    background = Color3.fromRGB(15, 15, 25),
+    backgroundAlt = Color3.fromRGB(20, 20, 35),
+    panel = Color3.fromRGB(25, 25, 40),
+    panelHover = Color3.fromRGB(30, 30, 45),
+    accent = Color3.fromRGB(100, 150, 255),
+    border = Color3.fromRGB(50, 50, 70),
+    textPrimary = Color3.fromRGB(255, 255, 255),
+    textSecondary = Color3.fromRGB(230, 230, 240),
+    textMuted = Color3.fromRGB(180, 180, 200),
+    textPlaceholder = Color3.fromRGB(100, 100, 110),
+    stopButton = Color3.fromRGB(255, 80, 100),
+    stopButtonHover = Color3.fromRGB(255, 100, 120),
+}
+
+-- ============================================================
+-- ANIMATION DATABASE
+-- ============================================================
+local animations = {
+    dances = {
+        {name = "2 Baddies Dance", id = 12259828678},
+        {name = "2 Put Hon Dance", id = 114774556469581},
+        {name = "7 Rings Dance", id = 76278246500974},
+        {name = "ACELERADA", id = 103360497719320},
+        {name = "Ariana", id = 134318425949290},
+        {name = "Arona Dance Meme", id = 112176404394603},
+        {name = "Around Town", id = 10713981723},
+        {name = "Ay-Yo Dance Move", id = 12804157977},
+        {name = "Baby Dance", id = 10713983178},
+        {name = "Belly Dance", id = 96100759913198},
+        {name = "Bone Chillin Bop", id = 15122972413},
+        {name = "Brazil Dance", id = 72215709069845},
+        {name = "Break dance", id = 10714003221},
+        {name = "California Girls", id = 117131241615268},
+        {name = "Caramelldansen", id = 127118661424463},
+        {name = "Caramell Dansen", id = 91603508036532},
+        {name = "Cha Cha", id = 6862001787},
+        {name = "Chappell Roan HOT TO GO!", id = 85267023718407},
+        {name = "Confess Dance", id = 109585388574936},
+        {name = "Dahood Dance", id = 90851789511239},
+        {name = "DARE - Gorillaz", id = 94569503223288},
+        {name = "Distraction Dance", id = 126354750423726},
+        {name = "Dolphin Dance", id = 10714068222},
+        {name = "Dorky Dance", id = 10714069471},
+        {name = "Dougie", id = 93650537970037},
+        {name = "do You Want Me", id = 109364514498221},
+        {name = "Fancy Feet", id = 10714076981},
+        {name = "Fast Hands", id = 10714100539},
+        {name = "Festive Dance", id = 15679621440},
+        {name = "Floor Rock Freeze", id = 10214314957},
+        {name = "Floss", id = 10714340543},
+        {name = "Frosty Flair", id = 10214311282},
+        {name = "Fry Dance", id = 122254727316758},
+        {name = "Gangnam Style!", id = 129764254213842},
+        {name = "Get Griddy", id = 130503075892925},
+        {name = "Griddy", id = 121966805049108},
+        {name = "Hakari Dance", id = 118465124106910},
+        {name = "Heart Shuffle", id = 17748314784},
+        {name = "Heart Skip", id = 11309255148},
+        {name = "HIPMOTION - Amaarae", id = 16572740012},
+        {name = "Hips Poppin - Zara Larsson", id = 10714364213},
+        {name = "Hip Sway", id = 138316142522795},
+        {name = "HOLIDAY Dance LNX", id = 10714365721},
+        {name = "Ice Spice Shiny", id = 95467957133755},
+        {name = "Idol", id = 10714372526},
+        {name = "It Ain't My Fault ZL", id = 10714374267},
+        {name = "Jason Goofy", id = 120452122477461},
+        {name = "Jason Vorhees", id = 87282442358351},
+        {name = "Jersey Bounce", id = 129346993972313},
+        {name = "KATSEYE - Touch", id = 135876612109535},
+        {name = "Koto Nai Meme", id = 83650099589962},
+        {name = "L Dance", id = 133633601322298},
+        {name = "Line Dance", id = 10714383856},
+        {name = "Macarena", id = 95057986092544},
+        {name = "Make You Mine", id = 88050523705839},
+        {name = "Mean Girl Dance", id = 15963314052},
+        {name = "Mesmerizer", id = 124532423933420},
+        {name = "Michael Myers", id = 106146415775743},
+        {name = "Michael Myers Shake", id = 138694026614242},
+        {name = "Michael Myers Bounce", id = 99426087008755},
+        {name = "Michael Myers Bounce DH", id = 118364690209655},
+        {name = "NCT 127", id = 12259826609},
+        {name = "Needy Dance", id = 78086740525202},
+        {name = "Nicki Minaj Boom", id = 15571448688},
+        {name = "Nicki Minaj Starships", id = 15571453761},
+        {name = "Nyan Nyan!", id = 108025254624123},
+        {name = "Old Town LNX", id = 10714391240},
+        {name = "Olivia Rodrigo Head Bop", id = 15517864808},
+        {name = "Paris Hilton Sanasa", id = 16126469463},
+        {name = "Party Rock Anthem", id = 113074782746670},
+        {name = "Peter Parker", id = 92412244743129},
+        {name = "Piano Hands", id = 16553163212},
+        {name = "Popular", id = 93062298566806},
+        {name = "Rambunctious", id = 129991743366120},
+        {name = "Rat Dance", id = 105877365832399},
+        {name = "Rat Dance 1", id = 113375965758912},
+        {name = "Rock Out", id = 11753474067},
+        {name = "Rodeo dance LNX", id = 10714395175},
+        {name = "Samba", id = 10714386947},
+        {name = "Samba 1", id = 16270690701},
+        {name = "Secret Handshake Dance", id = 71243990877913},
+        {name = "Shake That Thang", id = 77045616324578},
+        {name = "Show Dem Wrists - KSI", id = 10714377090},
+        {name = "Shuffle", id = 10714371274},
+        {name = "Sidekicks - George Ezra", id = 10370362157},
+        {name = "Side to Side", id = 10714366910},
+        {name = "Sliving For The Groove", id = 15392759696},
+        {name = "Soda Pop", id = 139110277540140},
+        {name = "Spider Dance", id = 139310328821985},
+        {name = "Sponge Dance", id = 72248021897603},
+        {name = "Starboy Strut", id = 71105746210464},
+        {name = "Sticker Dance Move", id = 12259825026},
+        {name = "Still Standing", id = 11444443576},
+        {name = "Stray Kids Walkin", id = 125064469983655},
+        {name = "Sturdy Dance - Ice Spice", id = 17746180844},
+        {name = "Take Me Under ZL", id = 10714345459},
+        {name = "Take The L", id = 98153987578413},
+        {name = "Team USA Breaking", id = 18526288497},
+        {name = "Tell Me tell Me", id = 99499902539238},
+        {name = "Top Rock", id = 10714336041},
+        {name = "TV Time Dance", id = 104748118296461},
+        {name = "Tyla Dance", id = 111754856931573},
+        {name = "TWICE Feel Special", id = 14899980745},
+        {name = "TWICE I Got You", id = 16215030041},
+        {name = "TWICE LIKEY", id = 14899979575},
+        {name = "TWICE WIL", id = 125724450808506},
+        {name = "Twirl", id = 10714293450},
+        {name = "Victory Dance", id = 15505456446},
+        {name = "Watch it Move", id = 82493645455958},
+        {name = "Xaviersobased", id = 90802740360125},
+        {name = "Yungblud Happier Jump", id = 15609995579},
+        {name = "Zombie", id = 10714089137},
+    },
+    emotes = {
+        {name = "Adorable Dolly", id = 101717677816415},
+        {name = "Angel Idle", id = 99828067051785},
+        {name = "Annyeong", id = 138591721528570},
+        {name = "Archer", id = 13823324057},
+        {name = "Aura Fly Sitting", id = 130198479813020},
+        {name = "Aura Posing", id = 120021536131036},
+        {name = "Aura RNG Fly", id = 89523370947906},
+        {name = "Basketball Head", id = 138243322520289},
+        {name = "Beauty Touchdown", id = 16302968986},
+        {name = "Beckon", id = 10713984554},
+        {name = "Bodybuilder", id = 10713990381},
+        {name = "Bored", id = 10713992055},
+        {name = "Boxing Punch KSI", id = 10717116749},
+        {name = "Bubbly Sit", id = 93120341268524},
+        {name = "Catwalk Walk", id = 97847888500780},
+        {name = "Cuco - Levitate", id = 15698404340},
+        {name = "Curtshy", id = 10714061912},
+        {name = "Cute Crouch", id = 93731275877969},
+        {name = "Cute Feet Kicking", id = 124287251935400},
+        {name = "Cute Fierce Slay", id = 116179501436539},
+        {name = "Cute Floating Fly", id = 77099947447557},
+        {name = "Cute Kawaii Girly", id = 127563130887228},
+        {name = "Cute Kawaii Legs Up", id = 75308796616533},
+        {name = "Cute Kawaii Posing", id = 129100070542534},
+        {name = "Cute Kicking Feet Sit", id = 115619217455701},
+        {name = "Cute Knee Sit", id = 118804990227492},
+        {name = "Cute n Shy Idle", id = 80222624644964},
+        {name = "Cute Sit", id = 97459465855185},
+        {name = "Cute Sit Legs Out", id = 71112973269174},
+        {name = "Cut Wave Pose", id = 111733880310741},
+        {name = "Cutest Sit Kitty", id = 138179125460989},
+        {name = "Confused", id = 4940561610},
+        {name = "Cower", id = 4940563117},
+        {name = "Dab", id = 109541229169111},
+        {name = "Dizzy", id = 10714066964},
+        {name = "Drum Master", id = 10714070681},
+        {name = "Effortless Aura Pose", id = 133418516499878},
+        {name = "Elevate", id = 11394033602},
+        {name = "e sit", id = 86898753801433},
+        {name = "Face Frame", id = 14352340648},
+        {name = "Fake MM2 Death", id = 96365410904232},
+        {name = "Fashionable", id = 10714091938},
+        {name = "Fishing", id = 10714101749},
+        {name = "Floating", id = 73980801925168},
+        {name = "Floating 1", id = 70394064781064},
+        {name = "Floating Aura", id = 92587731065850},
+        {name = "Floating Goddess", id = 100681208320300},
+        {name = "Floating Halloween", id = 112082806790047},
+        {name = "Floating Idle", id = 135616750552190},
+        {name = "Floating in Love", id = 102342919277367},
+        {name = "Floating on Clouds", id = 77840765435893},
+        {name = "Float Sitting", id = 105235781332272},
+        {name = "Godlike", id = 10714347256},
+        {name = "Gojo Floating", id = 109030594660124},
+        {name = "Greatest", id = 10714349037},
+        {name = "Haha", id = 10714350889},
+        {name = "Headless Hooper", id = 76967087698141},
+        {name = "Hero Landing", id = 10714360164},
+        {name = "Iconic IT-Grrrl", id = 15392756794},
+        {name = "I wanna Run Away", id = 104428851742579},
+        {name = "Jumping Wave", id = 10714378156},
+        {name = "Kawaii Magical Kpop", id = 87225106485926},
+        {name = "Kawai Shy Sit", id = 85961795938515},
+        {name = "Kicking Feet Sit", id = 80754582835479},
+        {name = "Kissy Pose", id = 89451004065980},
+        {name = "Levitate", id = 131063357988754},
+        {name = "Lotus Position", id = 12507085924},
+        {name = "Mean Mug", id = 10214317325},
+        {name = "MM2 fake Dead", id = 84112287597268},
+        {name = "Nonchalant Sit", id = 126899447275562},
+        {name = "Olivia Rodrigo Float", id = 15549124879},
+        {name = "Phase", id = 90584560149153},
+        {name = "Power Blast", id = 10714389396},
+        {name = "Profile Pose", id = 85759464214287},
+        {name = "Relaxed Sit", id = 97185364700038},
+        {name = "Robot", id = 10714392151},
+        {name = "Rolling Crybaby", id = 129699431093711},
+        {name = "Sad", id = 10714392876},
+        {name = "SEIZURE", id = 98719422024341},
+        {name = "Shy", id = 10714369325},
+        {name = "Sit", id = 102544119718369},
+        {name = "Sitting Squad", id = 96357779735687},
+        {name = "Sleep", id = 10714360343},
+        {name = "Spiderman", id = 123955307291627},
+        {name = "Spiderman Hang", id = 83345430870757},
+        {name = "Spongebob Imagination", id = 18443237526},
+        {name = "Stylish Floating", id = 112089880074848},
+        {name = "Super Charge", id = 10478338114},
+        {name = "T", id = 10714347453},
+        {name = "Tree", id = 10714330764},
+        {name = "V Pose", id = 10214319518},
+        {name = "Wall Lean Idle", id = 136687532783709},
+        {name = "Y", id = 10714164866},
+    }
+}
+
+-- ============================================================
+-- STATE MANAGEMENT
+-- ============================================================
+local currentAnim = nil
+local isOpen = false
+local currentCategory = "dances"
+local activeButton = nil
+local currentAnimName = ""
+
+-- ============================================================
+-- ANIMATION FUNCTIONS - INSTANT RESPONSE
+-- ============================================================
+local function playAnimation(animId, animName)
+    -- Stop animasi sebelumnya tanpa delay
+    if currentAnim then
+        currentAnim:Stop(0)
+    end
+    
+    -- Load dan play animasi baru instantly
+    local anim = Instance.new("Animation")
+    anim.AnimationId = "rbxassetid://" .. animId
+    
+    local animTrack = animator:LoadAnimation(anim)
+    animTrack.Looped = true
+    animTrack.Priority = Enum.AnimationPriority.Action
+    
+    -- Play instantly dengan fade time 0
+    animTrack:Play(0, 1, 1)
+    
+    currentAnim = animTrack
+    currentAnimName = animName
+end
+
+local function stopAnimation()
+    if currentAnim then
+        currentAnim:Stop(0)
+        currentAnim = nil
+    end
+    
+    currentAnimName = ""
+    
+    if activeButton then
+        local label = activeButton:FindFirstChild("ButtonLabel")
+        
+        TweenService:Create(activeButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+        }):Play()
+        
+        if label then
+            TweenService:Create(label, TweenInfo.new(0.2), {
+                TextColor3 = COLORS.textSecondary
+            }):Play()
+        end
+        
+        activeButton = nil
+    end
+end
+
+-- ============================================================
+-- UI CREATION FUNCTIONS
+-- ============================================================
+local function createAnimButton(parent, animName, animId)
+    local button = Instance.new("TextButton")
+    button.Name = animName
+    button.Size = UDim2.new(1, -4, 0, UI_CONFIG.buttonHeight)
+    button.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    button.BorderSizePixel = 0
+    button.Text = ""
+    button.AutoButtonColor = false
+    button.ClipsDescendants = true
+    button.ZIndex = 7
+    button.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = button
+    
+    local label = Instance.new("TextLabel")
+    label.Name = "ButtonLabel"
+    label.Size = UDim2.new(1, -16, 1, 0)
+    label.Position = UDim2.new(0, 8, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = tostring(animName)
+    label.TextColor3 = COLORS.textSecondary
+    label.TextSize = UI_CONFIG.buttonTextSize
+    label.Font = Enum.Font.GothamMedium
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextTruncate = Enum.TextTruncate.AtEnd
+    label.ZIndex = 8
+    label.Parent = button
+    
+    if not isMobile then
+        button.MouseEnter:Connect(function()
+            if button ~= activeButton then
+                TweenService:Create(button, TweenInfo.new(0.15), {
+                    BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+                }):Play()
+            end
+        end)
+        
+        button.MouseLeave:Connect(function()
+            if button ~= activeButton then
+                TweenService:Create(button, TweenInfo.new(0.15), {
+                    BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+                }):Play()
+            end
+        end)
+    end
+    
+    button.MouseButton1Click:Connect(function()
+        if activeButton and activeButton ~= button then
+            local oldLabel = activeButton:FindFirstChild("ButtonLabel")
+            
+            TweenService:Create(activeButton, TweenInfo.new(0.2), {
+                BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+            }):Play()
+            
+            if oldLabel then
+                TweenService:Create(oldLabel, TweenInfo.new(0.2), {
+                    TextColor3 = COLORS.textSecondary
+                }):Play()
+            end
+        end
+        
+        playAnimation(animId, animName)
+        activeButton = button
+        
+        TweenService:Create(button, TweenInfo.new(0.2), {
+            BackgroundColor3 = COLORS.accent
+        }):Play()
+        
+        TweenService:Create(label, TweenInfo.new(0.2), {
+            TextColor3 = COLORS.textPrimary
+        }):Play()
+    end)
+    
+    return button
+end
+
+local function loadCategory(category, scrollFrame)
+    activeButton = nil
+    
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    local animList = animations[category] or {}
+    for _, anim in ipairs(animList) do
+        local btn = createAnimButton(scrollFrame, anim.name, anim.id)
+        
+        if currentAnimName == anim.name then
+            activeButton = btn
+            btn.BackgroundColor3 = COLORS.accent
+            
+            local label = btn:FindFirstChild("ButtonLabel")
+            if label then
+                label.TextColor3 = COLORS.textPrimary
+            end
+        end
+    end
+end
+
+local function createGUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "DanceEmoteGUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = player.PlayerGui
+    
+    -- Toggle Button
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Name = "ToggleButton"
+    toggleButton.Size = UI_CONFIG.toggleSize
+    toggleButton.Position = UI_CONFIG.togglePositionClosed
+    toggleButton.BackgroundColor3 = COLORS.background
+    toggleButton.BorderSizePixel = 0
+    toggleButton.Text = "💃"
+    toggleButton.TextSize = UI_CONFIG.toggleTextSize
+    toggleButton.Font = Enum.Font.GothamBold
+    toggleButton.AutoButtonColor = false
+    toggleButton.ZIndex = 10
+    toggleButton.Parent = screenGui
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(1, 0)
+    toggleCorner.Parent = toggleButton
+    
+    local toggleStroke = Instance.new("UIStroke")
+    toggleStroke.Color = COLORS.accent
+    toggleStroke.Thickness = 1.5
+    toggleStroke.Transparency = 0.5
+    toggleStroke.Parent = toggleButton
+    
+    -- Main Panel
+    local mainPanel = Instance.new("Frame")
+    mainPanel.Name = "MainPanel"
+    mainPanel.Size = UI_CONFIG.panelSize
+    mainPanel.Position = UI_CONFIG.panelPositionClosed
+    mainPanel.BackgroundColor3 = COLORS.background
+    mainPanel.BorderSizePixel = 0
+    mainPanel.ClipsDescendants = true
+    mainPanel.Visible = true
+    mainPanel.ZIndex = 5
+    mainPanel.Parent = screenGui
+    
+    local panelCorner = Instance.new("UICorner")
+    panelCorner.CornerRadius = UDim.new(0, 10)
+    panelCorner.Parent = mainPanel
+    
+    local panelStroke = Instance.new("UIStroke")
+    panelStroke.Color = COLORS.accent
+    panelStroke.Thickness = 1
+    panelStroke.Transparency = 0.7
+    panelStroke.Parent = mainPanel
+    
+    -- Content Frame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = "Content"
+    contentFrame.Size = UDim2.new(1, -16, 1, -16)
+    contentFrame.Position = UDim2.new(0, 8, 0, 8)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.ZIndex = 6
+    contentFrame.Parent = mainPanel
+    
+    -- Title
+    local titleFrame = Instance.new("Frame")
+    titleFrame.Size = UDim2.new(1, 0, 0, UI_CONFIG.titleHeight)
+    titleFrame.BackgroundTransparency = 1
+    titleFrame.ZIndex = 10
+    titleFrame.Parent = contentFrame
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 1, 0)
+    title.BackgroundTransparency = 1
+    title.TextColor3 = COLORS.textPrimary
+    title.Text = "ACTIONS"
+    title.TextSize = UI_CONFIG.titleTextSize
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.ZIndex = 10
+    title.Parent = titleFrame
+    
+    -- Category Tabs
+    local tabsFrame = Instance.new("Frame")
+    tabsFrame.Name = "TabsFrame"
+    tabsFrame.Size = UDim2.new(1, 0, 0, UI_CONFIG.tabHeight)
+    tabsFrame.Position = UDim2.new(0, 0, 0, UI_CONFIG.titleHeight + 2)
+    tabsFrame.BackgroundTransparency = 1
+    tabsFrame.ZIndex = 10
+    tabsFrame.Parent = contentFrame
+    
+    local danceTab = Instance.new("TextButton")
+    danceTab.Name = "DanceTab"
+    danceTab.Size = UDim2.new(0.5, -2, 1, 0)
+    danceTab.BackgroundColor3 = COLORS.accent
+    danceTab.BorderSizePixel = 0
+    danceTab.Text = "Dance"
+    danceTab.TextColor3 = COLORS.textPrimary
+    danceTab.TextSize = UI_CONFIG.tabTextSize
+    danceTab.Font = Enum.Font.GothamBold
+    danceTab.AutoButtonColor = false
+    danceTab.ZIndex = 10
+    danceTab.Parent = tabsFrame
+    
+    local danceTabCorner = Instance.new("UICorner")
+    danceTabCorner.CornerRadius = UDim.new(0, 6)
+    danceTabCorner.Parent = danceTab
+    
+    local emoteTab = Instance.new("TextButton")
+    emoteTab.Name = "EmoteTab"
+    emoteTab.Size = UDim2.new(0.5, -2, 1, 0)
+    emoteTab.Position = UDim2.new(0.5, 2, 0, 0)
+    emoteTab.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    emoteTab.BorderSizePixel = 0
+    emoteTab.Text = "Emote"
+    emoteTab.TextColor3 = COLORS.textMuted
+    emoteTab.TextSize = UI_CONFIG.tabTextSize
+    emoteTab.Font = Enum.Font.GothamBold
+    emoteTab.AutoButtonColor = false
+    emoteTab.ZIndex = 10
+    emoteTab.Parent = tabsFrame
+    
+    local emoteTabCorner = Instance.new("UICorner")
+    emoteTabCorner.CornerRadius = UDim.new(0, 6)
+    emoteTabCorner.Parent = emoteTab
+    
+    -- Search Box
+    local searchBox = Instance.new("TextBox")
+    searchBox.Name = "SearchBox"
+    searchBox.Size = UDim2.new(1, 0, 0, UI_CONFIG.searchHeight)
+    searchBox.Position = UDim2.new(0, 0, 0, UI_CONFIG.titleHeight + UI_CONFIG.tabHeight + 4)
+    searchBox.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    searchBox.BorderSizePixel = 0
+    searchBox.TextColor3 = COLORS.textPrimary
+    searchBox.PlaceholderColor3 = COLORS.textPlaceholder
+    searchBox.PlaceholderText = "Search..."
+    searchBox.Text = ""
+    searchBox.TextSize = UI_CONFIG.searchTextSize
+    searchBox.Font = Enum.Font.Gotham
+    searchBox.ClearTextOnFocus = false
+    searchBox.TextXAlignment = Enum.TextXAlignment.Left
+    searchBox.ZIndex = 10
+    searchBox.Parent = contentFrame
+    
+    local searchPadding = Instance.new("UIPadding")
+    searchPadding.PaddingLeft = UDim.new(0, 8)
+    searchPadding.Parent = searchBox
+    
+    local searchCorner = Instance.new("UICorner")
+    searchCorner.CornerRadius = UDim.new(0, 6)
+    searchCorner.Parent = searchBox
+    
+    local headerHeight = UI_CONFIG.titleHeight + UI_CONFIG.tabHeight + UI_CONFIG.searchHeight + 8
+    
+    -- Scroll Frame
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "AnimationList"
+    scrollFrame.Size = UDim2.new(1, -4, 1, -(headerHeight + UI_CONFIG.tabHeight + 8))
+    scrollFrame.Position = UDim2.new(0, 0, 0, headerHeight)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 4
+    scrollFrame.ScrollBarImageColor3 = COLORS.accent
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    scrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+    scrollFrame.ClipsDescendants = true
+    scrollFrame.ZIndex = 6
+    scrollFrame.Parent = contentFrame
+    
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 6)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    listLayout.Parent = scrollFrame
+    
+    local listPadding = Instance.new("UIPadding")
+    listPadding.PaddingTop = UDim.new(0, 4)
+    listPadding.PaddingBottom = UDim.new(0, 10)
+    listPadding.PaddingLeft = UDim.new(0, 2)
+    listPadding.PaddingRight = UDim.new(0, 2)
+    listPadding.Parent = scrollFrame
+    
+    -- Stop Button
+    local stopButton = Instance.new("TextButton")
+    stopButton.Name = "StopButton"
+    stopButton.Size = UDim2.new(1, 0, 0, UI_CONFIG.tabHeight)
+    stopButton.Position = UDim2.new(0, 0, 1, -UI_CONFIG.tabHeight)
+    stopButton.BackgroundColor3 = COLORS.stopButton
+    stopButton.BorderSizePixel = 0
+    stopButton.TextColor3 = COLORS.textPrimary
+    stopButton.Text = "⏹ STOP"
+    stopButton.TextSize = UI_CONFIG.tabTextSize
+    stopButton.Font = Enum.Font.GothamBold
+    stopButton.AutoButtonColor = false
+    stopButton.ZIndex = 11
+    stopButton.Parent = contentFrame
+    
+    local stopCorner = Instance.new("UICorner")
+    stopCorner.CornerRadius = UDim.new(0, 6)
+    stopCorner.Parent = stopButton
+    
+    return screenGui, scrollFrame, stopButton, toggleButton, mainPanel, searchBox, danceTab, emoteTab
+end
+
+-- ============================================================
+-- GUI INITIALIZATION
+-- ============================================================
+local gui, scrollFrame, stopButton, toggleButton, mainPanel, searchBox, danceTab, emoteTab = createGUI()
+
+loadCategory(currentCategory, scrollFrame)
+
+-- ============================================================
+-- EVENT HANDLERS
+-- ============================================================
+
+-- Tab Switching - Instant
+danceTab.MouseButton1Click:Connect(function()
+    currentCategory = "dances"
+    loadCategory(currentCategory, scrollFrame)
+    
+    danceTab.BackgroundColor3 = COLORS.accent
+    emoteTab.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    danceTab.TextColor3 = COLORS.textPrimary
+    emoteTab.TextColor3 = COLORS.textMuted
+    searchBox.Text = ""
+end)
+
+emoteTab.MouseButton1Click:Connect(function()
+    currentCategory = "emotes"
+    loadCategory(currentCategory, scrollFrame)
+    
+    emoteTab.BackgroundColor3 = COLORS.accent
+    danceTab.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    emoteTab.TextColor3 = COLORS.textPrimary
+    danceTab.TextColor3 = COLORS.textMuted
+    searchBox.Text = ""
+end)
+
+-- Search Functionality
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local searchText = searchBox.Text:lower()
+    
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            local animName = child.Name:lower()
+            child.Visible = (searchText == "" or animName:find(searchText))
+        end
+    end
+end)
+
+-- Toggle Panel
+toggleButton.MouseButton1Click:Connect(function()
+    isOpen = not isOpen
+    
+    if isOpen then
+        TweenService:Create(mainPanel, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+            Position = UI_CONFIG.panelPositionOpen
+        }):Play()
+        
+        TweenService:Create(toggleButton, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+            Position = UI_CONFIG.togglePositionOpen
+        }):Play()
+        
+        toggleButton.Text = "X"
+    else
+        TweenService:Create(mainPanel, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+            Position = UI_CONFIG.panelPositionClosed
+        }):Play()
+        
+        TweenService:Create(toggleButton, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+            Position = UI_CONFIG.togglePositionClosed
+        }):Play()
+        
+        toggleButton.Text = "💃"
+    end
+end)
+
+-- Stop Button - Instant
+stopButton.MouseButton1Click:Connect(function()
+    stopAnimation()
+end)
+
+-- ============================================================
+-- HOVER EFFECTS (PC ONLY)
+-- ============================================================
+if not isMobile then
+    stopButton.MouseEnter:Connect(function()
+        TweenService:Create(stopButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = COLORS.stopButtonHover
+        }):Play()
+    end)
+    
+    stopButton.MouseLeave:Connect(function()
+        TweenService:Create(stopButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = COLORS.stopButton
+        }):Play()
+    end)
+    
+    toggleButton.MouseEnter:Connect(function()
+        local targetSize = UDim2.new(UI_CONFIG.toggleSize.X.Scale, UI_CONFIG.toggleSize.X.Offset + 4, 
+                       UI_CONFIG.toggleSize.Y.Scale, UI_CONFIG.toggleSize.Y.Offset + 4)
+        
+        TweenService:Create(toggleButton, TweenInfo.new(0.2), {
+            Size = targetSize
+        }):Play()
+    end)
+    
+    toggleButton.MouseLeave:Connect(function()
+        TweenService:Create(toggleButton, TweenInfo.new(0.2), {
+            Size = UI_CONFIG.toggleSize
+        }):Play()
+    end)
+    
+    danceTab.MouseEnter:Connect(function()
+        if currentCategory ~= "dances" then
+            TweenService:Create(danceTab, TweenInfo.new(0.15), {
+                BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+            }):Play()
+        end
+    end)
+    
+    danceTab.MouseLeave:Connect(function()
+        if currentCategory ~= "dances" then
+            TweenService:Create(danceTab, TweenInfo.new(0.15), {
+                BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+            }):Play()
+        end
+    end)
+    
+    emoteTab.MouseEnter:Connect(function()
+        if currentCategory ~= "emotes" then
+            TweenService:Create(emoteTab, TweenInfo.new(0.15), {
+                BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+            }):Play()
+        end
+    end)
+    
+    emoteTab.MouseLeave:Connect(function()
+        if currentCategory ~= "emotes" then
+            TweenService:Create(emoteTab, TweenInfo.new(0.15), {
+                BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+            }):Play()
+        end
+    end)
+end
+
+-- ============================================================
+-- CHARACTER RESPAWN HANDLER
+-- ============================================================
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoid = character:WaitForChild("Humanoid")
+    animator = humanoid:WaitForChild("Animator")
+    
+    currentAnim = nil
+    currentAnimName = ""
+    activeButton = nil
+end)
+
+-- ============================================================
+-- INITIALIZATION COMPLETE
+-- ============================================================
+local platform = isMobile and "Mobile" or "PC"
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("✨ Dance & Emote GUI v2.0 - CLEAN & INSTANT")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("📱 Platform: " .. platform)
+print("👤 Author: ItoRenz")
+print("🔧 Features:")
+print("   ✓ Instant animation switching (0ms delay)")
+print("   ✓ No speed variation")
+print("   ✓ Clean & simple code")
+print("   ✓ Smooth UI transitions")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("🎉 GUI Ready! Click 💃 to open")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
