@@ -1,16 +1,16 @@
 --[[
     ============================================================
-    MODERN MINIMALIST DANCE & EMOTE GUI - CLEAN VERSION
+    MODERN MINIMALIST DANCE & EMOTE GUI - WITH FAVORITES
     ============================================================
     Author: ItoRenz
-    Description: Clean GUI untuk dance dan emote di Roblox
+    Description: GUI for dances and emotes in Roblox with Favorite feature
     Platform: Mobile & PC Support
-    Version: 2.0 - Instant Response, No Delay
+    Version: 3.0 - Instant Response + Persistent Favorites
     
     Installation:
-    1. Buat ScreenGui di StarterGui
-    2. Buat LocalScript di dalam ScreenGui
-    3. Paste script ini ke LocalScript
+    1. Create a ScreenGui in StarterGui
+    2. Create a LocalScript inside the ScreenGui
+    3. Paste this script into the LocalScript
     ============================================================
 --]]
 
@@ -45,12 +45,10 @@ local UI_CONFIG = {
     
     titleHeight = isMobile and 20 or 22,
     tabHeight = isMobile and 26 or 28,
-    searchHeight = isMobile and 26 or 28,
     
     buttonHeight = isMobile and 36 or 42,
     titleTextSize = isMobile and 10 or 11,
     tabTextSize = isMobile and 9 or 10,
-    searchTextSize = isMobile and 9 or 10,
     buttonTextSize = isMobile and 11 or 13,
 }
 
@@ -70,6 +68,8 @@ local COLORS = {
     textPlaceholder = Color3.fromRGB(100, 100, 110),
     stopButton = Color3.fromRGB(255, 80, 100),
     stopButtonHover = Color3.fromRGB(255, 100, 120),
+    favoriteActive = Color3.fromRGB(255, 215, 0),
+    favoriteInactive = Color3.fromRGB(100, 100, 110),
 }
 
 -- ============================================================
@@ -295,17 +295,73 @@ local isOpen = false
 local currentCategory = "dances"
 local activeButton = nil
 local currentAnimName = ""
+local favorites = {}
+
+-- ============================================================
+-- STORAGE FUNCTIONS
+-- ============================================================
+local function saveFavorites()
+    task.spawn(function()
+        local success, err = pcall(function()
+            window.storage:set("dance_emote_favorites", game:GetService("HttpService"):JSONEncode(favorites), false)
+        end)
+        if not success then
+            warn("Failed to save favorites:", err)
+        end
+    end)
+end
+
+local function loadFavorites()
+    task.spawn(function()
+        local success, result = pcall(function()
+            return window.storage:get("dance_emote_favorites", false)
+        end)
+        
+        if success and result and result.value then
+            local decodeSuccess, decoded = pcall(function()
+                return game:GetService("HttpService"):JSONDecode(result.value)
+            end)
+            
+            if decodeSuccess and decoded then
+                favorites = decoded
+            end
+        end
+    end)
+end
+
+local function toggleFavorite(animName, animId, category, button)
+    local key = animName .. "_" .. animId
+    
+    if favorites[key] then
+        favorites[key] = nil
+        
+        if currentCategory == "favorites" and button then
+            button:Destroy()
+        end
+    else
+        favorites[key] = {
+            name = animName,
+            id = animId,
+            category = category
+        }
+    end
+    
+    saveFavorites()
+end
+
+local function isFavorite(animName, animId)
+    local key = animName .. "_" .. animId
+    return favorites[key] ~= nil
+end
 
 -- ============================================================
 -- ANIMATION FUNCTIONS - INSTANT RESPONSE
 -- ============================================================
 local function playAnimation(animId, animName)
-    -- Stop animasi sebelumnya tanpa delay
     if currentAnim then
         currentAnim:Stop(0)
     end
     
-    -- Load dan play animasi baru instantly
     local anim = Instance.new("Animation")
     anim.AnimationId = "rbxassetid://" .. animId
     
@@ -313,7 +369,6 @@ local function playAnimation(animId, animName)
     animTrack.Looped = true
     animTrack.Priority = Enum.AnimationPriority.Action
     
-    -- Play instantly dengan fade time 0
     animTrack:Play(0, 1, 1)
     
     currentAnim = animTrack
@@ -348,7 +403,7 @@ end
 -- ============================================================
 -- UI CREATION FUNCTIONS
 -- ============================================================
-local function createAnimButton(parent, animName, animId)
+local function createAnimButton(parent, animName, animId, category)
     local button = Instance.new("TextButton")
     button.Name = animName
     button.Size = UDim2.new(1, -4, 0, UI_CONFIG.buttonHeight)
@@ -364,9 +419,21 @@ local function createAnimButton(parent, animName, animId)
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = button
     
+    local starButton = Instance.new("TextButton")
+    starButton.Name = "StarButton"
+    starButton.Size = UDim2.new(0, 30, 1, 0)
+    starButton.Position = UDim2.new(1, -30, 0, 0)
+    starButton.BackgroundTransparency = 1
+    starButton.Text = isFavorite(animName, animId) and "★" or "☆"
+    starButton.TextColor3 = isFavorite(animName, animId) and COLORS.favoriteActive or COLORS.favoriteInactive
+    starButton.TextSize = UI_CONFIG.buttonTextSize + 2
+    starButton.Font = Enum.Font.GothamBold
+    starButton.ZIndex = 9
+    starButton.Parent = button
+    
     local label = Instance.new("TextLabel")
     label.Name = "ButtonLabel"
-    label.Size = UDim2.new(1, -16, 1, 0)
+    label.Size = UDim2.new(1, -46, 1, 0)
     label.Position = UDim2.new(0, 8, 0, 0)
     label.BackgroundTransparency = 1
     label.Text = tostring(animName)
@@ -377,6 +444,15 @@ local function createAnimButton(parent, animName, animId)
     label.TextTruncate = Enum.TextTruncate.AtEnd
     label.ZIndex = 8
     label.Parent = button
+    
+    starButton.MouseButton1Click:Connect(function()
+        toggleFavorite(animName, animId, category, button)
+        
+        if button.Parent then
+            starButton.Text = isFavorite(animName, animId) and "★" or "☆"
+            starButton.TextColor3 = isFavorite(animName, animId) and COLORS.favoriteActive or COLORS.favoriteInactive
+        end
+    end)
     
     if not isMobile then
         button.MouseEnter:Connect(function()
@@ -435,9 +511,18 @@ local function loadCategory(category, scrollFrame)
         end
     end
     
-    local animList = animations[category] or {}
+    local animList
+    if category == "favorites" then
+        animList = {}
+        for _, data in pairs(favorites) do
+            table.insert(animList, data)
+        end
+    else
+        animList = animations[category] or {}
+    end
+    
     for _, anim in ipairs(animList) do
-        local btn = createAnimButton(scrollFrame, anim.name, anim.id)
+        local btn = createAnimButton(scrollFrame, anim.name, anim.id, category)
         
         if currentAnimName == anim.name then
             activeButton = btn
@@ -457,7 +542,6 @@ local function createGUI()
     screenGui.ResetOnSpawn = false
     screenGui.Parent = player.PlayerGui
     
-    -- Toggle Button
     local toggleButton = Instance.new("TextButton")
     toggleButton.Name = "ToggleButton"
     toggleButton.Size = UI_CONFIG.toggleSize
@@ -481,7 +565,6 @@ local function createGUI()
     toggleStroke.Transparency = 0.5
     toggleStroke.Parent = toggleButton
     
-    -- Main Panel
     local mainPanel = Instance.new("Frame")
     mainPanel.Name = "MainPanel"
     mainPanel.Size = UI_CONFIG.panelSize
@@ -503,7 +586,6 @@ local function createGUI()
     panelStroke.Transparency = 0.7
     panelStroke.Parent = mainPanel
     
-    -- Content Frame
     local contentFrame = Instance.new("Frame")
     contentFrame.Name = "Content"
     contentFrame.Size = UDim2.new(1, -16, 1, -16)
@@ -512,7 +594,6 @@ local function createGUI()
     contentFrame.ZIndex = 6
     contentFrame.Parent = mainPanel
     
-    -- Title
     local titleFrame = Instance.new("Frame")
     titleFrame.Size = UDim2.new(1, 0, 0, UI_CONFIG.titleHeight)
     titleFrame.BackgroundTransparency = 1
@@ -530,7 +611,6 @@ local function createGUI()
     title.ZIndex = 10
     title.Parent = titleFrame
     
-    -- Category Tabs
     local tabsFrame = Instance.new("Frame")
     tabsFrame.Name = "TabsFrame"
     tabsFrame.Size = UDim2.new(1, 0, 0, UI_CONFIG.tabHeight)
@@ -541,7 +621,7 @@ local function createGUI()
     
     local danceTab = Instance.new("TextButton")
     danceTab.Name = "DanceTab"
-    danceTab.Size = UDim2.new(0.5, -2, 1, 0)
+    danceTab.Size = UDim2.new(0.33, -2, 1, 0)
     danceTab.BackgroundColor3 = COLORS.accent
     danceTab.BorderSizePixel = 0
     danceTab.Text = "Dance"
@@ -558,8 +638,8 @@ local function createGUI()
     
     local emoteTab = Instance.new("TextButton")
     emoteTab.Name = "EmoteTab"
-    emoteTab.Size = UDim2.new(0.5, -2, 1, 0)
-    emoteTab.Position = UDim2.new(0.5, 2, 0, 0)
+    emoteTab.Size = UDim2.new(0.33, -2, 1, 0)
+    emoteTab.Position = UDim2.new(0.33, 1, 0, 0)
     emoteTab.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
     emoteTab.BorderSizePixel = 0
     emoteTab.Text = "Emote"
@@ -574,35 +654,26 @@ local function createGUI()
     emoteTabCorner.CornerRadius = UDim.new(0, 6)
     emoteTabCorner.Parent = emoteTab
     
-    -- Search Box
-    local searchBox = Instance.new("TextBox")
-    searchBox.Name = "SearchBox"
-    searchBox.Size = UDim2.new(1, 0, 0, UI_CONFIG.searchHeight)
-    searchBox.Position = UDim2.new(0, 0, 0, UI_CONFIG.titleHeight + UI_CONFIG.tabHeight + 4)
-    searchBox.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-    searchBox.BorderSizePixel = 0
-    searchBox.TextColor3 = COLORS.textPrimary
-    searchBox.PlaceholderColor3 = COLORS.textPlaceholder
-    searchBox.PlaceholderText = "Search..."
-    searchBox.Text = ""
-    searchBox.TextSize = UI_CONFIG.searchTextSize
-    searchBox.Font = Enum.Font.Gotham
-    searchBox.ClearTextOnFocus = false
-    searchBox.TextXAlignment = Enum.TextXAlignment.Left
-    searchBox.ZIndex = 10
-    searchBox.Parent = contentFrame
+    local favoriteTab = Instance.new("TextButton")
+    favoriteTab.Name = "FavoriteTab"
+    favoriteTab.Size = UDim2.new(0.33, -2, 1, 0)
+    favoriteTab.Position = UDim2.new(0.66, 2, 0, 0)
+    favoriteTab.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    favoriteTab.BorderSizePixel = 0
+    favoriteTab.Text = "★ Fav"
+    favoriteTab.TextColor3 = COLORS.textMuted
+    favoriteTab.TextSize = UI_CONFIG.tabTextSize
+    favoriteTab.Font = Enum.Font.GothamBold
+    favoriteTab.AutoButtonColor = false
+    favoriteTab.ZIndex = 10
+    favoriteTab.Parent = tabsFrame
     
-    local searchPadding = Instance.new("UIPadding")
-    searchPadding.PaddingLeft = UDim.new(0, 8)
-    searchPadding.Parent = searchBox
+    local favoriteTabCorner = Instance.new("UICorner")
+    favoriteTabCorner.CornerRadius = UDim.new(0, 6)
+    favoriteTabCorner.Parent = favoriteTab
     
-    local searchCorner = Instance.new("UICorner")
-    searchCorner.CornerRadius = UDim.new(0, 6)
-    searchCorner.Parent = searchBox
+    local headerHeight = UI_CONFIG.titleHeight + UI_CONFIG.tabHeight + 4
     
-    local headerHeight = UI_CONFIG.titleHeight + UI_CONFIG.tabHeight + UI_CONFIG.searchHeight + 8
-    
-    -- Scroll Frame
     local scrollFrame = Instance.new("ScrollingFrame")
     scrollFrame.Name = "AnimationList"
     scrollFrame.Size = UDim2.new(1, -4, 1, -(headerHeight + UI_CONFIG.tabHeight + 8))
@@ -631,7 +702,6 @@ local function createGUI()
     listPadding.PaddingRight = UDim.new(0, 2)
     listPadding.Parent = scrollFrame
     
-    -- Stop Button
     local stopButton = Instance.new("TextButton")
     stopButton.Name = "StopButton"
     stopButton.Size = UDim2.new(1, 0, 0, UI_CONFIG.tabHeight)
@@ -650,13 +720,16 @@ local function createGUI()
     stopCorner.CornerRadius = UDim.new(0, 6)
     stopCorner.Parent = stopButton
     
-    return screenGui, scrollFrame, stopButton, toggleButton, mainPanel, searchBox, danceTab, emoteTab
+    return screenGui, scrollFrame, stopButton, toggleButton, mainPanel, danceTab, emoteTab, favoriteTab
 end
 
 -- ============================================================
 -- GUI INITIALIZATION
 -- ============================================================
-local gui, scrollFrame, stopButton, toggleButton, mainPanel, searchBox, danceTab, emoteTab = createGUI()
+local gui, scrollFrame, stopButton, toggleButton, mainPanel, danceTab, emoteTab, favoriteTab = createGUI()
+
+loadFavorites()
+task.wait(0.5)
 
 loadCategory(currentCategory, scrollFrame)
 
@@ -664,16 +737,16 @@ loadCategory(currentCategory, scrollFrame)
 -- EVENT HANDLERS
 -- ============================================================
 
--- Tab Switching - Instant
 danceTab.MouseButton1Click:Connect(function()
     currentCategory = "dances"
     loadCategory(currentCategory, scrollFrame)
     
     danceTab.BackgroundColor3 = COLORS.accent
     emoteTab.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    favoriteTab.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
     danceTab.TextColor3 = COLORS.textPrimary
     emoteTab.TextColor3 = COLORS.textMuted
-    searchBox.Text = ""
+    favoriteTab.TextColor3 = COLORS.textMuted
 end)
 
 emoteTab.MouseButton1Click:Connect(function()
@@ -682,24 +755,24 @@ emoteTab.MouseButton1Click:Connect(function()
     
     emoteTab.BackgroundColor3 = COLORS.accent
     danceTab.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    favoriteTab.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
     emoteTab.TextColor3 = COLORS.textPrimary
     danceTab.TextColor3 = COLORS.textMuted
-    searchBox.Text = ""
+    favoriteTab.TextColor3 = COLORS.textMuted
 end)
 
--- Search Functionality
-searchBox:GetPropertyChangedSignal("Text"):Connect(function()
-    local searchText = searchBox.Text:lower()
+favoriteTab.MouseButton1Click:Connect(function()
+    currentCategory = "favorites"
+    loadCategory(currentCategory, scrollFrame)
     
-    for _, child in ipairs(scrollFrame:GetChildren()) do
-        if child:IsA("TextButton") then
-            local animName = child.Name:lower()
-            child.Visible = (searchText == "" or animName:find(searchText))
-        end
-    end
+    favoriteTab.BackgroundColor3 = COLORS.accent
+    danceTab.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    emoteTab.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    favoriteTab.TextColor3 = COLORS.textPrimary
+    danceTab.TextColor3 = COLORS.textMuted
+    emoteTab.TextColor3 = COLORS.textMuted
 end)
 
--- Toggle Panel
 toggleButton.MouseButton1Click:Connect(function()
     isOpen = not isOpen
     
@@ -726,7 +799,6 @@ toggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Stop Button - Instant
 stopButton.MouseButton1Click:Connect(function()
     stopAnimation()
 end)
@@ -793,6 +865,22 @@ if not isMobile then
             }):Play()
         end
     end)
+    
+    favoriteTab.MouseEnter:Connect(function()
+        if currentCategory ~= "favorites" then
+            TweenService:Create(favoriteTab, TweenInfo.new(0.15), {
+                BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+            }):Play()
+        end
+    end)
+    
+    favoriteTab.MouseLeave:Connect(function()
+        if currentCategory ~= "favorites" then
+            TweenService:Create(favoriteTab, TweenInfo.new(0.15), {
+                BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+            }):Play()
+        end
+    end)
 end
 
 -- ============================================================
@@ -813,15 +901,17 @@ end)
 -- ============================================================
 local platform = isMobile and "Mobile" or "PC"
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("✨ Dance & Emote GUI v2.0 - CLEAN & INSTANT")
+print("✨ Dance & Emote GUI v3.0 - WITH FAVORITES")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 print("📱 Platform: " .. platform)
 print("👤 Author: ItoRenz")
 print("🔧 Features:")
 print("   ✓ Instant animation switching (0ms delay)")
-print("   ✓ No speed variation")
-print("   ✓ Clean & simple code")
-print("   ✓ Smooth UI transitions")
+print("   ✓ Persistent favorites system")
+print("   ✓ 3 tabs: Dance, Emote, Favorites")
+print("   ✓ Click ★ to add/remove favorites")
+print("   ✓ Favorites saved across servers")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 print("🎉 GUI Ready! Click 💃 to open")
+print("⭐ Click star icon to favorite animations!")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
