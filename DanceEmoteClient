@@ -1,29 +1,35 @@
 --[[
     ============================================================
-    MODERN MINIMALIST DANCE & EMOTE GUI - WITH FAVORITES
+    MODERN MINIMALIST DANCE & EMOTE GUI - CLIENT SCRIPT
     ============================================================
-    Author: ItoRenz
-    Description: GUI for dances and emotes in Roblox with Favorite feature
+    Author: ItoRenz00
+    Description: GUI for dances and emotes in Roblox with Persistent Favorites
     Platform: Mobile & PC Support
-    Version: 3.0 - Instant Response + Persistent Favorites
+    Version: 4.0 - SERVER-SIDE DATASTORE
     
     Installation:
-    1. Create a ScreenGui in StarterGui
-    2. Create a LocalScript inside the ScreenGui
-    3. Paste this script into the LocalScript
+    1. Place Server Script in ServerScriptService
+    2. Place this Client Script in StarterPlayer > StarterPlayerScripts
     ============================================================
 --]]
 
 -- ============================================================
 -- SERVICES & VARIABLES
 -- ============================================================
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local animator = humanoid:WaitForChild("Animator")
 
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
+-- Wait for RemoteEvents
+local RemoteFolder = ReplicatedStorage:WaitForChild("DanceEmoteRemotes")
+local SaveFavoritesEvent = RemoteFolder:WaitForChild("SaveFavorites")
+local LoadFavoritesEvent = RemoteFolder:WaitForChild("LoadFavorites")
 
 -- ============================================================
 -- PLATFORM DETECTION
@@ -296,35 +302,42 @@ local currentCategory = "dances"
 local activeButton = nil
 local currentAnimName = ""
 local favorites = {}
+local preloadedAnims = {}
+local isSaving = false
 
 -- ============================================================
 -- STORAGE FUNCTIONS
 -- ============================================================
 local function saveFavorites()
+    if isSaving then return end
+    isSaving = true
+    
     task.spawn(function()
         local success, err = pcall(function()
-            window.storage:set("dance_emote_favorites", game:GetService("HttpService"):JSONEncode(favorites), false)
+            SaveFavoritesEvent:FireServer(favorites)
         end)
+        
         if not success then
-            warn("Failed to save favorites:", err)
+            warn("[Dance GUI] Failed to save favorites:", err)
         end
+        
+        task.wait(0.5)
+        isSaving = false
     end)
 end
 
 local function loadFavorites()
     task.spawn(function()
-        local success, result = pcall(function()
-            return window.storage:get("dance_emote_favorites", false)
+        local success, loadedData = pcall(function()
+            return LoadFavoritesEvent:InvokeServer()
         end)
         
-        if success and result and result.value then
-            local decodeSuccess, decoded = pcall(function()
-                return game:GetService("HttpService"):JSONDecode(result.value)
-            end)
-            
-            if decodeSuccess and decoded then
-                favorites = decoded
-            end
+        if success and loadedData and type(loadedData) == "table" then
+            favorites = loadedData
+            print("[Dance GUI] Loaded " .. #table.unpack({pairs(favorites)}) .. " favorites from server")
+        else
+            favorites = {}
+            print("[Dance GUI] No favorites found, starting fresh")
         end
     end)
 end
@@ -355,11 +368,11 @@ local function isFavorite(animName, animId)
 end
 
 -- ============================================================
--- ANIMATION FUNCTIONS - INSTANT RESPONSE
+-- ANIMATION FUNCTIONS - INSTANT PLAY WITH PRELOAD
 -- ============================================================
-local function playAnimation(animId, animName)
-    if currentAnim then
-        currentAnim:Stop(0)
+local function preloadAnimation(animId)
+    if preloadedAnims[animId] then
+        return preloadedAnims[animId]
     end
     
     local anim = Instance.new("Animation")
@@ -367,11 +380,27 @@ local function playAnimation(animId, animName)
     
     local animTrack = animator:LoadAnimation(anim)
     animTrack.Looped = true
-    animTrack.Priority = Enum.AnimationPriority.Action
+    animTrack.Priority = Enum.AnimationPriority.Action4
     
-    animTrack:Play(0, 1, 1)
+    preloadedAnims[animId] = animTrack
+    return animTrack
+end
+
+local function playAnimation(animId, animName)
+    local newAnimTrack = preloadAnimation(animId)
     
-    currentAnim = animTrack
+    if currentAnim and currentAnim ~= newAnimTrack then
+        currentAnim:Stop(0)
+    end
+    
+    if not newAnimTrack.IsPlaying then
+        newAnimTrack:Play(0, 1, 1)
+    else
+        newAnimTrack:Stop(0)
+        newAnimTrack:Play(0, 1, 1)
+    end
+    
+    currentAnim = newAnimTrack
     currentAnimName = animName
 end
 
@@ -414,6 +443,10 @@ local function createAnimButton(parent, animName, animId, category)
     button.ClipsDescendants = true
     button.ZIndex = 7
     button.Parent = parent
+    
+    task.spawn(function()
+        preloadAnimation(animId)
+    end)
     
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
@@ -728,9 +761,11 @@ end
 -- ============================================================
 local gui, scrollFrame, stopButton, toggleButton, mainPanel, danceTab, emoteTab, favoriteTab = createGUI()
 
+-- Load favorites dari server
 loadFavorites()
-task.wait(0.5)
+task.wait(1)
 
+-- Load kategori pertama
 loadCategory(currentCategory, scrollFrame)
 
 -- ============================================================
@@ -894,6 +929,7 @@ player.CharacterAdded:Connect(function(newCharacter)
     currentAnim = nil
     currentAnimName = ""
     activeButton = nil
+    preloadedAnims = {}
 end)
 
 -- ============================================================
@@ -901,17 +937,19 @@ end)
 -- ============================================================
 local platform = isMobile and "Mobile" or "PC"
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("✨ Dance & Emote GUI v3.0 - WITH FAVORITES")
+print("✨ Dance & Emote GUI v4.0 - SERVER DATASTORE")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 print("📱 Platform: " .. platform)
-print("👤 Author: ItoRenz")
+print("👤 Author: ItoRenz00")
 print("🔧 Features:")
-print("   ✓ Instant animation switching (0ms delay)")
-print("   ✓ Persistent favorites system")
+print("   ✓ SERVER-SIDE DATASTORE - Never lose favorites!")
+print("   ✓ Persistent across rejoin & server restart")
+print("   ✓ INSTANT animation switching (0ms)")
+print("   ✓ Preload system for smooth playback")
 print("   ✓ 3 tabs: Dance, Emote, Favorites")
 print("   ✓ Click ★ to add/remove favorites")
-print("   ✓ Favorites saved across servers")
+print("   ✓ Auto-save to server")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 print("🎉 GUI Ready! Click 💃 to open")
-print("⭐ Click star icon to favorite animations!")
+print("⚡ Loading favorites from server...")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
