@@ -1,0 +1,114 @@
+--[[
+    ============================================================
+    DANCE & EMOTE GUI - SERVER SCRIPT
+    ============================================================
+    Author: ItoRenz00
+    Version: 4.0 - SERVER DATASTORE SYSTEM
+    Place this in: ServerScriptService
+    Handles DataStore for persistent favorites
+    ============================================================
+--]]
+
+local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- DataStore untuk menyimpan favorites
+local FavoritesDataStore = DataStoreService:GetDataStore("DanceEmoteFavorites_v1")
+
+-- Remote Events untuk komunikasi Client-Server
+local RemoteFolder = Instance.new("Folder")
+RemoteFolder.Name = "DanceEmoteRemotes"
+RemoteFolder.Parent = ReplicatedStorage
+
+local SaveFavoritesEvent = Instance.new("RemoteEvent")
+SaveFavoritesEvent.Name = "SaveFavorites"
+SaveFavoritesEvent.Parent = RemoteFolder
+
+local LoadFavoritesEvent = Instance.new("RemoteFunction")
+LoadFavoritesEvent.Name = "LoadFavorites"
+LoadFavoritesEvent.Parent = RemoteFolder
+
+-- Cache untuk mengurangi DataStore calls
+local playerFavoritesCache = {}
+
+-- Fungsi untuk load favorites dari DataStore
+local function loadPlayerFavorites(player)
+    local userId = player.UserId
+    local success, data = pcall(function()
+        return FavoritesDataStore:GetAsync("Player_" .. userId)
+    end)
+    
+    if success and data then
+        playerFavoritesCache[userId] = data
+        return data
+    else
+        playerFavoritesCache[userId] = {}
+        return {}
+    end
+end
+
+-- Fungsi untuk save favorites ke DataStore
+local function savePlayerFavorites(player, favoritesData)
+    local userId = player.UserId
+    
+    -- Update cache
+    playerFavoritesCache[userId] = favoritesData
+    
+    -- Save ke DataStore (async)
+    spawn(function()
+        local success, err = pcall(function()
+            FavoritesDataStore:SetAsync("Player_" .. userId, favoritesData)
+        end)
+        
+        if not success then
+            warn("[Dance GUI] Failed to save favorites for " .. player.Name .. ": " .. tostring(err))
+        end
+    end)
+end
+
+-- Event handler untuk load favorites
+LoadFavoritesEvent.OnServerInvoke = function(player)
+    return loadPlayerFavorites(player)
+end
+
+-- Event handler untuk save favorites
+SaveFavoritesEvent.OnServerEvent:Connect(function(player, favoritesData)
+    if type(favoritesData) == "table" then
+        savePlayerFavorites(player, favoritesData)
+    end
+end)
+
+-- Preload favorites saat player join
+Players.PlayerAdded:Connect(function(player)
+    loadPlayerFavorites(player)
+end)
+
+-- Save favorites saat player leave
+Players.PlayerRemoving:Connect(function(player)
+    local userId = player.UserId
+    local cachedData = playerFavoritesCache[userId]
+    
+    if cachedData then
+        -- Final save sebelum player disconnect
+        local success, err = pcall(function()
+            FavoritesDataStore:SetAsync("Player_" .. userId, cachedData)
+        end)
+        
+        if success then
+            print("[Dance GUI] Saved favorites for " .. player.Name)
+        else
+            warn("[Dance GUI] Failed final save for " .. player.Name .. ": " .. tostring(err))
+        end
+        
+        -- Clear cache
+        playerFavoritesCache[userId] = nil
+    end
+end)
+
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("👤 Author: ItoRenz00")
+print("✅ Dance & Emote Server Script Active")
+print("💾 DataStore System Ready")
+print("📦 Version: 4.0 - SERVER DATASTORE SYSTEM")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
