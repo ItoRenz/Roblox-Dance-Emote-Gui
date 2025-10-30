@@ -56,7 +56,7 @@ local function savePlayerFavorites(player, favoritesData)
     playerFavoritesCache[userId] = favoritesData
     
     -- Save ke DataStore (async)
-    spawn(function()
+    task.spawn(function()
         local success, err = pcall(function()
             FavoritesDataStore:SetAsync("Player_" .. userId, favoritesData)
         end)
