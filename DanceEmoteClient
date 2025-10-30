@@ -361,7 +361,9 @@ local function loadFavorites()
         
         if success and loadedData and type(loadedData) == "table" then
             favorites = loadedData
-            print("[Dance GUI] Loaded " .. #table.unpack({pairs(favorites)}) .. " favorites from server")
+            local count = 0
+            for _ in pairs(favorites) do count = count + 1 end
+            print("[Dance GUI] Loaded " .. count .. " favorites from server")
         else
             favorites = {}
             print("[Dance GUI] No favorites found, starting fresh")
@@ -664,7 +666,7 @@ local function createGUI()
     title.Size = UDim2.new(1, 0, 1, 0)
     title.BackgroundTransparency = 1
     title.TextColor3 = COLORS.textPrimary
-    title.Text = "ACTIONS"
+    title.Text = "ANIMATIONS"
     title.TextSize = UI_CONFIG.titleTextSize
     title.Font = Enum.Font.GothamBold
     title.TextXAlignment = Enum.TextXAlignment.Left
