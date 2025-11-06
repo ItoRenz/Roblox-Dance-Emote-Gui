@@ -164,7 +164,6 @@ local animations = {
         {name = "Mean Girl Dance", id = 15963314052},
         {name = "Mentema", id = 132671797643713},
         {name = "Mesmerizer", id = 124532423933420},
-        {name = "Michael Myers", id = 106146415775743},
         {name = "Michael Myers Shake", id = 138694026614242},
         {name = "Michael Myers Bounce", id = 99426087008755},
         {name = "Michael Myers Bounce DH", id = 118364690209655},
