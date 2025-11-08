@@ -109,8 +109,6 @@ local animations = {
         {name = "Cute Shake", id = 124281232573073},
         {name = "Dahood Dance", id = 90851789511239},
         {name = "DARE - Gorillaz", id = 94569503223288},
-        {name = "Dia Delicia", id = 132785409314949},
-        {name = "Dia Delicia Dance", id = 136976705386406},
         {name = "Die Lit", id = 100114227897992},
         {name = "Distraction Dance", id = 126354750423726},
         {name = "Dolphin Dance", id = 10714068222},
