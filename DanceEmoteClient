@@ -188,7 +188,6 @@ local animations = {
         {name = "Samba", id = 10714386947},
         {name = "Samba 1", id = 16270690701},
         {name = "Secret Handshake Dance", id = 71243990877913},
-        {name = "Shake That Thang", id = 77045616324578},
         {name = "Show Dem Wrists", id = 10714377090},
         {name = "Shuffle", id = 10714371274},
         {name = "Sidekicks", id = 10370362157},
