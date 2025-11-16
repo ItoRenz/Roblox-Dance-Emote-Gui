@@ -1,21 +1,16 @@
---[[
-    ============================================================
-    MODERN MINIMALIST DANCE & EMOTE GUI - CLIENT SCRIPT
-    ============================================================
-    Author: ItoRenz00
-    Description: GUI for dances and emotes in Roblox with Persistent Favorites
-    Platform: Mobile & PC Support
-    Version: 4.0 - SERVER-SIDE DATASTORE
-    
-    Installation:
-    1. Place Server Script in ServerScriptService
-    2. Place this Client Script in StarterPlayer > StarterPlayerScripts
-    ============================================================
---]]
+-- ============================================================
+-- MODERN MINIMALIST DANCE & EMOTE GUI - CLIENT SCRIPT
+-- Author: ItoRenz00
+-- Version: 4.0 - SERVER-SIDE DATASTORE
+-- Description:
+-- GUI for dances and emotes in Roblox with persistent favorites
+-- Supports mobile & PC
+-- Installation:
+-- 1. Place Server Script in ServerScriptService
+-- 2. Place this Client Script in StarterPlayer > StarterPlayerScripts
+-- ============================================================
 
--- ============================================================
 -- SERVICES & VARIABLES
--- ============================================================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -26,19 +21,14 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local animator = humanoid:WaitForChild("Animator")
 
--- Wait for RemoteEvents
 local RemoteFolder = ReplicatedStorage:WaitForChild("DanceEmoteRemotes")
 local SaveFavoritesEvent = RemoteFolder:WaitForChild("SaveFavorites")
 local LoadFavoritesEvent = RemoteFolder:WaitForChild("LoadFavorites")
 
--- ============================================================
 -- PLATFORM DETECTION
--- ============================================================
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
--- ============================================================
 -- UI CONFIGURATION
--- ============================================================
 local UI_CONFIG = {
     toggleSize = isMobile and UDim2.new(0, 30, 0, 30) or UDim2.new(0, 35, 0, 35),
     togglePositionClosed = isMobile and UDim2.new(0, 8, 0.5, -15) or UDim2.new(0, 10, 0.5, -17.5),
@@ -58,9 +48,7 @@ local UI_CONFIG = {
     buttonTextSize = isMobile and 11 or 13,
 }
 
--- ============================================================
 -- COLOR PALETTE
--- ============================================================
 local COLORS = {
     background = Color3.fromRGB(15, 15, 25),
     backgroundAlt = Color3.fromRGB(20, 20, 35),
@@ -78,9 +66,7 @@ local COLORS = {
     favoriteInactive = Color3.fromRGB(100, 100, 110),
 }
 
--- ============================================================
 -- ANIMATION DATABASE
--- ============================================================
 local animations = {
     dances = {
         {name = "2 Baddies Dance", id = 12259828678},
@@ -316,9 +302,7 @@ local animations = {
     }
 }
 
--- ============================================================
 -- STATE MANAGEMENT
--- ============================================================
 local currentAnim = nil
 local isOpen = false
 local currentCategory = "dances"
@@ -328,9 +312,7 @@ local favorites = {}
 local preloadedAnims = {}
 local isSaving = false
 
--- ============================================================
 -- STORAGE FUNCTIONS
--- ============================================================
 local function saveFavorites()
     if isSaving then return end
     isSaving = true
@@ -362,7 +344,6 @@ local function loadFavorites()
             print("[Dance GUI] Loaded " .. count .. " favorites from server")
         else
             favorites = {}
-            print("[Dance GUI] No favorites found, starting fresh")
         end
     end)
 end
@@ -392,9 +373,7 @@ local function isFavorite(animName, animId)
     return favorites[key] ~= nil
 end
 
--- ============================================================
--- ANIMATION FUNCTIONS - INSTANT PLAY WITH PRELOAD
--- ============================================================
+-- ANIMATION FUNCTIONS
 local function preloadAnimation(animId)
     if preloadedAnims[animId] then
         return preloadedAnims[animId]
@@ -454,9 +433,7 @@ local function stopAnimation()
     end
 end
 
--- ============================================================
 -- UI CREATION FUNCTIONS
--- ============================================================
 local function createAnimButton(parent, animName, animId, category)
     local button = Instance.new("TextButton")
     button.Name = animName
@@ -781,21 +758,14 @@ local function createGUI()
     return screenGui, scrollFrame, stopButton, toggleButton, mainPanel, danceTab, emoteTab, favoriteTab
 end
 
--- ============================================================
 -- GUI INITIALIZATION
--- ============================================================
 local gui, scrollFrame, stopButton, toggleButton, mainPanel, danceTab, emoteTab, favoriteTab = createGUI()
 
--- Load favorites dari server
 loadFavorites()
 task.wait(1)
-
--- Load kategori pertama
 loadCategory(currentCategory, scrollFrame)
 
--- ============================================================
 -- EVENT HANDLERS
--- ============================================================
 
 danceTab.MouseButton1Click:Connect(function()
     currentCategory = "dances"
@@ -863,9 +833,6 @@ stopButton.MouseButton1Click:Connect(function()
     stopAnimation()
 end)
 
--- ============================================================
--- HOVER EFFECTS (PC ONLY)
--- ============================================================
 if not isMobile then
     stopButton.MouseEnter:Connect(function()
         TweenService:Create(stopButton, TweenInfo.new(0.2), {
@@ -943,9 +910,7 @@ if not isMobile then
     end)
 end
 
--- ============================================================
 -- CHARACTER RESPAWN HANDLER
--- ============================================================
 player.CharacterAdded:Connect(function(newCharacter)
     character = newCharacter
     humanoid = character:WaitForChild("Humanoid")
@@ -957,9 +922,7 @@ player.CharacterAdded:Connect(function(newCharacter)
     preloadedAnims = {}
 end)
 
--- ============================================================
 -- INITIALIZATION COMPLETE
--- ============================================================
 local platform = isMobile and "Mobile" or "PC"
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 print("✨ Dance & Emote GUI v4.0 - SERVER DATASTORE")
@@ -976,5 +939,4 @@ print("   ✓ Click ★ to add/remove favorites")
 print("   ✓ Auto-save to server")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 print("🎉 GUI Ready! Click 💃 to open")
-print("⚡ Loading favorites from server...")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
