@@ -1,22 +1,20 @@
---[[
-    ============================================================
-    DANCE & EMOTE GUI - SERVER SCRIPT
-    ============================================================
-    Author: ItoRenz00
-    Version: 4.0 - SERVER DATASTORE SYSTEM
-    Place this in: ServerScriptService
-    Handles DataStore for persistent favorites
-    ============================================================
---]]
+-- ============================================================
+-- DANCE & EMOTE GUI - SERVER SCRIPT
+-- Author: ItoRenz00
+-- Version: 4.0 - SERVER DATASTORE SYSTEM
+-- Description:
+-- Handles persistent favorites DataStore for Dance & Emote GUI
+-- Place this script in ServerScriptService
+-- ============================================================
 
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- DataStore untuk menyimpan favorites
+-- DataStore for saving favorites
 local FavoritesDataStore = DataStoreService:GetDataStore("DanceEmoteFavorites_v1")
 
--- Remote Events untuk komunikasi Client-Server
+-- Remote Events and Functions for Client-Server communication
 local RemoteFolder = Instance.new("Folder")
 RemoteFolder.Name = "DanceEmoteRemotes"
 RemoteFolder.Parent = ReplicatedStorage
@@ -29,16 +27,16 @@ local LoadFavoritesEvent = Instance.new("RemoteFunction")
 LoadFavoritesEvent.Name = "LoadFavorites"
 LoadFavoritesEvent.Parent = RemoteFolder
 
--- Cache untuk mengurangi DataStore calls
+-- Cache to reduce DataStore calls
 local playerFavoritesCache = {}
 
--- Fungsi untuk load favorites dari DataStore
+-- Load favorites for a player
 local function loadPlayerFavorites(player)
     local userId = player.UserId
     local success, data = pcall(function()
         return FavoritesDataStore:GetAsync("Player_" .. userId)
     end)
-    
+
     if success and data then
         playerFavoritesCache[userId] = data
         return data
@@ -48,60 +46,56 @@ local function loadPlayerFavorites(player)
     end
 end
 
--- Fungsi untuk save favorites ke DataStore
+-- Save favorites for a player asynchronously
 local function savePlayerFavorites(player, favoritesData)
     local userId = player.UserId
-    
-    -- Update cache
     playerFavoritesCache[userId] = favoritesData
-    
-    -- Save ke DataStore (async)
+
+    -- Async saving with pcall and no repeated log if success
     task.spawn(function()
         local success, err = pcall(function()
             FavoritesDataStore:SetAsync("Player_" .. userId, favoritesData)
         end)
-        
+
         if not success then
             warn("[Dance GUI] Failed to save favorites for " .. player.Name .. ": " .. tostring(err))
         end
     end)
 end
 
--- Event handler untuk load favorites
+-- RemoteFunction to handle load requests
 LoadFavoritesEvent.OnServerInvoke = function(player)
     return loadPlayerFavorites(player)
 end
 
--- Event handler untuk save favorites
+-- RemoteEvent to handle save requests
 SaveFavoritesEvent.OnServerEvent:Connect(function(player, favoritesData)
     if type(favoritesData) == "table" then
         savePlayerFavorites(player, favoritesData)
     end
 end)
 
--- Preload favorites saat player join
+-- Preload favorites cache when player joins
 Players.PlayerAdded:Connect(function(player)
     loadPlayerFavorites(player)
 end)
 
--- Save favorites saat player leave
+-- Save favorites cache on player leaving with one final save to DataStore
 Players.PlayerRemoving:Connect(function(player)
     local userId = player.UserId
     local cachedData = playerFavoritesCache[userId]
-    
+
     if cachedData then
-        -- Final save sebelum player disconnect
         local success, err = pcall(function()
             FavoritesDataStore:SetAsync("Player_" .. userId, cachedData)
         end)
-        
+
         if success then
             print("[Dance GUI] Saved favorites for " .. player.Name)
         else
             warn("[Dance GUI] Failed final save for " .. player.Name .. ": " .. tostring(err))
         end
-        
-        -- Clear cache
+
         playerFavoritesCache[userId] = nil
     end
 end)
